@@ -1,8 +1,5 @@
 /usr/local/spark2.1/bin/spark-submit --class com.masteklabs.sparkreporting.app.StructuredStreamingTest --master local[3] /data/masteklabs/FraudDetectionCode/sparkreporting-reportgen/target/sparkreporting-reportgen-0.0.1-SNAPSHOT-jar-with-dependencies.jar
 
-05:14 Elephant
-05:15 Lion
-
 ./bin/spark-submit --class org.apache.spark.examples.sql.streaming.JavaStructuredNetworkWordCountWindowed --master local[3] /usr/local/spark2.1/examples/jars/spark-examples_2.11-2.1.0.jar localhost 9999 5 3
 
 
@@ -17,8 +14,3 @@
 ./bin/run-example sql.streaming.JavaStructuredNetworkWordCountWindowed localhost 9999 5 
 3
 
-
-17/02/24 05:14:58 INFO DAGScheduler: ResultStage 48 (start at JavaStructuredNetworkWordCountWindowed.java:110) finished in 0.003 s
-17/02/24 05:14:58 INFO DAGScheduler: Job 27 finished: start at JavaStructuredNetworkWordCountWindowed.java:110, took 0.005872 s
-in/run-example sql.streaming.JavaStructuredNetworkWordCountWindowed
- *    localhost 9999 <window duration in seconds> [<slide duration in seconds>

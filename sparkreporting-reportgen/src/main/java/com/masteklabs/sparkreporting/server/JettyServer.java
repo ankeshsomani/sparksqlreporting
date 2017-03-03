@@ -1,6 +1,7 @@
 package com.masteklabs.sparkreporting.server;
 
 import java.util.EnumSet;
+import java.util.Properties;
 
 import javax.servlet.DispatcherType;
 
@@ -14,27 +15,31 @@ import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 
-public class JettyServer implements Runnable{
+public class JettyServer implements Runnable {
 
 	SparkSession sparkSession;
 
-	public JettyServer(SparkSession sparkSession) {
+	Properties appProperties;
+
+	public JettyServer(SparkSession sparkSession, Properties appProperties) {
 		this.sparkSession = sparkSession;
+		this.appProperties = appProperties;
 	}
 
-	
 	@Override
-	public  void run() {
+	public void run() {
 
 		Server server = new Server();
 
 		ServerConnector http = new ServerConnector(server);
 		http.setHost("0.0.0.0");
-		//http.setHost("localhost");
-		http.setPort(8081);
+		int port = Integer.parseInt(appProperties.getProperty("restserviceport"));
+
+		// http.setHost("localhost");
+		http.setPort(port);
 
 		server.addConnector(http);
-		
+
 		ContextHandler testDataHandler = new ContextHandler("/home");
 		testDataHandler.setContextPath("/home");
 		testDataHandler.setHandler(new TestHandler(sparkSession));

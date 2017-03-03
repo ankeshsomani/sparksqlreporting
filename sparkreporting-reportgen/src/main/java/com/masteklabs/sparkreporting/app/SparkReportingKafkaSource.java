@@ -1,7 +1,9 @@
 package com.masteklabs.sparkreporting.app;
 
+import java.io.FileInputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
@@ -23,13 +25,14 @@ import com.masteklabs.sparkreporting.util.ConvertorUtil;
 
 public final class SparkReportingKafkaSource {
 
-	public static final String CURR_DAY_TABLE_NAME = "tweets";
-	public static final String PREV_DAY_TABLE_NAME = "tweets_prev1";
-	public static final String DAY_BEFORE_YEST_TABLE_NAME = "tweets_prev2";
-	public static final String BOOTSTRAP_SERVERS = "localhost:9092";	
-	public static final long MILLISECONDS_IN_DAY=60*60*24*1000;
+	public static String CURR_DAY_TABLE_NAME;
+	public static String PREV_DAY_TABLE_NAME;
+	public static String DAY_BEFORE_YEST_TABLE_NAME;
+	public static String BOOTSTRAP_SERVERS;
+	public static final long MILLISECONDS_IN_DAY = 60 * 60 * 24 * 1000;
 	public static String topics;
-	public static   Logger log = Logger.getLogger(SparkReportingKafkaSource.class.getName());
+	public static Properties appProperties;
+	public static Logger log = Logger.getLogger(SparkReportingKafkaSource.class.getName());
 	static Function<String, Tweet> tweetExtractor = new Function<String, Tweet>() {
 		/**
 		 * 
@@ -48,35 +51,43 @@ public final class SparkReportingKafkaSource {
 		public void run() {
 			log.info("*********now exiting log****************");
 			System.out.println("*********now exiting****************");
-			
+
 			System.exit(0);
 		}
 	};
+
 	public static void main(String[] args) throws Exception {
-		if (args.length < 4) {
-			System.err.println("Usage: SparkReportingTool <topics> <queryTimeString seconds> <baseDirectoryName>"
-					+ " <exit time after whihc batch gets killed in minutes>");
+		if (args.length < 1) {
+			System.err.println("Usage: SparkReportingTool <path of appconfig.properties>");
 			System.exit(1);
 		}
-		log.info("*********starting log****************");
-		topics = args[0];
-		String queryTimeString = args[1];
-		
-		String baseDirectoryName=args[2];
-		int minutesAfterBatchGetsKilled=Integer.parseInt(args[3]);
-		if(minutesAfterBatchGetsKilled<0 && minutesAfterBatchGetsKilled > 1380){
+		log.info("*********starting****************");
+		Properties appProperties = new Properties();
+		String propertyFilePath = args[0];
+		appProperties.load(new FileInputStream(propertyFilePath));
+		topics = appProperties.getProperty("topics");
+		String queryTimeString = appProperties.getProperty("queryExecutionFrequencyInSeconds");
+		String baseDirectoryPath = appProperties.getProperty("baseDirectoryPath");
+		BOOTSTRAP_SERVERS = appProperties.getProperty("kafkaBootstrapServers");
+		CURR_DAY_TABLE_NAME = appProperties.getProperty("currentDayTableName");
+		PREV_DAY_TABLE_NAME = appProperties.getProperty("prevDayTableName");
+		DAY_BEFORE_YEST_TABLE_NAME = appProperties.getProperty("dayBeforeYestTableName");
+		int minutesAfterAppGetsKilled = Integer.parseInt(appProperties.getProperty("minutesAfterAppGetsKilled"));
+		if (minutesAfterAppGetsKilled < 0 && minutesAfterAppGetsKilled > 1438) {
 			System.err.println("minutes can be between 0 and 1438 only");
 			System.exit(1);
 		}
-		SimpleDateFormat sdf=new SimpleDateFormat("YY-MM-dd");
-		String currDate=sdf.format(new Date());
-		timer.schedule(exitTask, new Date(System.currentTimeMillis() + minutesAfterBatchGetsKilled*60 * 1000));// Exits
-		System.out.println("current date is"+currDate);
-		String prevDate=sdf.format(new Date(System.currentTimeMillis()-MILLISECONDS_IN_DAY));
-		String dayBeforeYesDate=sdf.format(new Date(System.currentTimeMillis()-(MILLISECONDS_IN_DAY*2)));
-		//String currDayFileName=baseDirectoryName+"/"+currDate+"/FlumeData-"+currDate+".txt";
-		String prevDayFileName=baseDirectoryName+"/"+prevDate+"/FlumeData-"+prevDate+".txt";
-		String dayBeforeYesFileName=baseDirectoryName+"/"+dayBeforeYesDate+"/FlumeData-"+dayBeforeYesDate+".txt";
+		SimpleDateFormat sdf = new SimpleDateFormat("YY-MM-dd");
+		String currDate = sdf.format(new Date());
+		timer.schedule(exitTask, new Date(System.currentTimeMillis() + minutesAfterAppGetsKilled * 60 * 1000));// Exits
+		System.out.println("current date is" + currDate);
+		String prevDate = sdf.format(new Date(System.currentTimeMillis() - MILLISECONDS_IN_DAY));
+		String dayBeforeYesDate = sdf.format(new Date(System.currentTimeMillis() - (MILLISECONDS_IN_DAY * 2)));
+		// String
+		// currDayFileName=baseDirectoryName+"/"+currDate+"/FlumeData-"+currDate+".txt";
+		String prevDayFileName = baseDirectoryPath + "/" + prevDate + "/FlumeData-" + prevDate + ".txt";
+		String dayBeforeYesFileName = baseDirectoryPath + "/" + dayBeforeYesDate + "/FlumeData-" + dayBeforeYesDate
+				+ ".txt";
 
 		int queryTime = Integer.parseInt(queryTimeString);
 
@@ -96,7 +107,7 @@ public final class SparkReportingKafkaSource {
 
 				try {
 					System.out.println("starting thread 2");
-					new Thread(new JettyServer(spark)).start();
+					new Thread(new JettyServer(spark, appProperties)).start();
 					query.awaitTermination();
 
 				} catch (StreamingQueryException e) {
